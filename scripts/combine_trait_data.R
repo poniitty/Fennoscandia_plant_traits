@@ -86,7 +86,7 @@ d1 %>% filter(site == "F6") %>% select(site, abbr, id, dir)
 d1 %>% mutate(leaf_area = sum_la/n_leaf,
               SLA = sum_la/d_weight) %>% 
   rename(total.leaf.area = sum_la) %>% 
-  select(site, species, study_design, n_inds, n_leaf, w_weight, d_weight, total.leaf.area, n, leaf_area, SLA, LDMC) -> d1
+  select(site, species, abbr, study_design, n_inds, n_leaf, w_weight, d_weight, total.leaf.area, sd_la_filt, n, n_filt, leaf_area, SLA, LDMC) -> d1
 
 #################################################################################
 # Kilpisjärvi 2020 traits
@@ -130,7 +130,8 @@ unique(d1$species)[which(!unique(d1$species) %in% unique(d$species))]
 
 d <- bind_rows(d %>% mutate(year = 2020), d1 %>% mutate(year = 2021)) %>% 
   relocate(year, .after = species) %>% 
-  relocate(study_design, .after = site)
+  relocate(study_design, .after = site) %>% 
+  relocate(abbr, .after = species)
 
 sort(unique(d$site))
 
