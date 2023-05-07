@@ -885,7 +885,6 @@ poaalpina;Poa alpina
 harhyp;Harrimanella hypnoides
 salher x pol;Salix herbacea x polaris
 carbig x aqu;Carex aquatilis x bigelowii
-tarsp;Taraxacum
 juntrifidus;Juncus trifidus
 rumlon;Rumex longifolius
 tripra;Trifolium pratense
@@ -900,3 +899,7 @@ verser;Veronica serpyllifolia
 lacalp;Lactuca alpina
 allsch;Allium schoenoprasum
 caraqubig;Carex aquatilis x bigelowii
+salix;Salix
+carbigxaqu;Carex aquatilis x bigelowii
+salherxpol;Salix herbacea x polaris
+sallapxhas;Salix lapponum x hastata
