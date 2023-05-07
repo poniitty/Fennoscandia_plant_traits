@@ -50,12 +50,17 @@ unique(dat$abbr)[which(!unique(dat$abbr) %in% nam$abbr)]
 
 dat <- left_join(dat, nam) %>% 
   relocate(site, species)
+dat %>% pull(species) %>% unique() %>% sort()
 
 # Leaf area data
 
-d2 <- read_csv("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2021/kilpisjarvi/leaves/LA_summarised_kilpis_2021.csv") %>% 
-  mutate(site = toupper(site),
-         species = toupper(species))
+library(data.table)
+
+d2 <- fread("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2021/kilpisjarvi/leaves/LA_summarised_kilpis_2021.csv", encoding = "Latin-1") %>% 
+  mutate(site = toupper(site)) %>%
+  mutate(species = toupper(species)) %>% 
+  as_tibble() %>% 
+  mutate(species = ifelse(species == "¨PHYCAE","PHYCAE",species))
 
 sort(unique(d2$species))
 sort(unique(d2$site))
@@ -73,6 +78,7 @@ d2 %>% mutate(site = ifelse(!is.na(as.numeric(site)), paste0("MI",site), site)) 
          site = ifelse(site == "RAX2", "RA048", site),
          site = ifelse(site == "KOO", "RA051", site)) %>% 
   rename(abbr = species) -> d2
+d2 %>% filter(!complete.cases(.))
 
 # Combine
 
@@ -111,7 +117,7 @@ d <- read_csv("trait_data/All_traits_2020.csv") %>%
          species = ifelse(species == "Melanpyrum pratense", "Melampyrum pratense", species),
          species = ifelse(species == "Salix phyllicifolia", "Salix phylicifolia", species))
 
-nam <- read.csv2("C:/Users/OMISTAJA/OneDrive - University of Helsinki/R_Projects/Fenno2018/Pekalta/NamesFromDatabasesFINAL.csv") %>%
+nam <- fread("C:/Users/OMISTAJA/OneDrive - University of Helsinki/R_Projects/Fenno2018/Pekalta/NamesFromDatabasesFINAL.csv") %>%
   select(OldName, final)
 
 unique(d$species)[which(!unique(d$species) %in% unique(nam$OldName))]
@@ -138,6 +144,59 @@ sort(unique(d$site))
 write_csv(d, "trait_data/Kilpis_combined_leaf_traits.csv")
 
 # write_csv(d %>% filter(study_design == "ITV"), "trait_data/ITV_leaf_traits.csv")
+
+# 2021 LEAF AREA FOR INDIVIDUAL LEAVES
+
+
+d2 <- fread("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2021/kilpisjarvi/leaves/LA_AllLeaves_kilpis_2021.csv", encoding = "Latin-1") %>% 
+  mutate(site = toupper(site)) %>%
+  mutate(species = toupper(species)) %>% 
+  as_tibble() %>% 
+  mutate(species = ifelse(species == "¨PHYCAE","PHYCAE",species))
+
+sort(unique(d2$species))
+sort(unique(d2$site))
+d2 %>% filter(site == "607")
+
+d2 %>% arrange(dir, site, species) %>% 
+  select(-c(n:sd_la)) -> d2
+
+
+d2 %>% mutate(site = ifelse(!is.na(as.numeric(site)), paste0("MI",site), site)) %>% 
+  mutate(species = ifelse(species == "¨PHYCAE", "PHYCAE", species),
+         species = ifelse(species == "GEMDRY", "GYMDRY", species)) %>% 
+  mutate(species = ifelse(site == "MI1057" & species == "SAUALP", "HIERAA", species)) %>% 
+  mutate(site = ifelse(site == "RAX1", "RA047", site),
+         site = ifelse(site == "RAX2", "RA048", site),
+         site = ifelse(site == "KOO", "RA051", site)) %>% 
+  rename(abbr = species) -> d2
+
+nam <- read_csv2("C:/Science/Summer2020/all_species_abbr_edited_2.csv", locale = readr::locale(encoding = "latin1")) %>% 
+  rename(species = name) %>% 
+  mutate(abbr = toupper(abbr))
+
+unique(d2$abbr)[which(!unique(d2$abbr) %in% nam$abbr)]
+
+d2 <- left_join(d2, nam) %>% 
+  relocate(site, species) %>% 
+  select(-id, -dir)
+
+unique(d2$species) %>% sort()
+
+nam <- fread("C:/Users/OMISTAJA/OneDrive - University of Helsinki/R_Projects/Fenno2018/Pekalta/NamesFromDatabasesFINAL.csv") %>%
+  select(OldName, final)
+
+unique(d2$species)[which(!unique(d2$species) %in% unique(nam$OldName))]
+
+left_join(d2, nam, by = c("species" = "OldName")) %>% 
+  mutate(final = ifelse(is.na(final), species, final)) %>% 
+  select(-species) %>% 
+  rename(species = final) %>% 
+  relocate(site, species) -> d2
+
+d2 %>% group_by(site, species) %>% mutate(leaf_id = row_number()) -> d2
+
+write_csv(d2, "trait_data/Kilpis_all_leaf_areas.csv")
 
 
 ############################################################################################
@@ -236,3 +295,13 @@ d %>% group_by(species) %>%
 
 write_csv(d, "trait_data/combined_traits.csv")
 
+dd <- read_csv("trait_data/combined_traits.csv")
+
+dd %>% 
+  filter(!is.na(SLA)) %>% 
+  pull(species) %>% 
+  unique() %>% 
+  sort()
+
+dd %>% 
+  filter(grepl("096", site))
