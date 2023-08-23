@@ -282,7 +282,7 @@ all <- full_join(cvr %>% select(plot:Silene_suecica) %>%
                    pivot_longer(cols = Betula_nana:Silene_suecica,names_to = "species",values_to = "cvr") %>% 
                    filter(cvr > 0),
                  heights) %>% 
-  full_join(., flow) %>% 
+  full_join(., flow) %>%
   mutate(plot = toupper(plot)) %>% 
   mutate(species = gsub("MAKEUNIQUE","",species)) %>% 
   mutate(species = gsub("[[:digit:]]","",species)) %>% 
@@ -307,6 +307,26 @@ allall <- full_join(full_join(all %>% rename(site = plot),
                     d4) %>% 
   mutate(date = as_date(ifelse(is.na(date), date2, date))) %>% 
   relocate(date, .after = plot_type) %>% select(-date2) %>% 
-  rename(n_leaf_image = n)
+  rename(n_leaf_image = n) %>%
+  filter(!is.na(species))
+
+# ITV grid heights
+
+d <- read_csv("C:/Users/poniitty/OneDrive - Jyväskylän yliopisto/Kesä2023/earlier_data/Kilpis2021/ITVgrid_heights.csv")
+
+d <- left_join(d %>% rename(abbr = species) %>% mutate(abbr = tolower(abbr)),
+          nam) %>% 
+  group_by(name, plot) %>% 
+  summarise(median_height2 = round(mean(height, na.rm = T),1),
+            max_height2 = max(height, na.rm = T)) %>% 
+  rename(species = name,
+         site = plot)
+
+allall <- left_join(allall, d %>% mutate(setting2 = "itvgrids", plot_type2 = "b")) %>% 
+  mutate(median_height = ifelse(is.na(median_height), median_height2, median_height),
+         max_height = ifelse(is.na(max_height), max_height2, max_height),
+         setting = ifelse(is.na(setting), setting2, setting),
+         plot_type = ifelse(is.na(plot_type), plot_type2, plot_type)) %>% 
+  select(-ends_with("2"))
 
 write_csv(allall, "trait_data/kilpis_vascular_all_2021.csv")

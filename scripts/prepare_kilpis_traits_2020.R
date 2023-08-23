@@ -414,7 +414,8 @@ allall <- full_join(full_join(all %>% rename(site = plot),
                     d4) %>% 
   mutate(date = as_date(ifelse(is.na(date), date2, date))) %>% 
   relocate(date, .after = plot_type) %>% select(-date2) %>% 
-  rename(n_leaf_image = n)
+  rename(n_leaf_image = n) %>%
+  filter(!is.na(species))
 
 write_csv(allall, "trait_data/kilpis_vascular_all_2020.csv")
 
