@@ -1,8 +1,7 @@
 library(tidyverse)
-library(lubridate)
 
 # Leaf area
-la <- read_csv("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2020/LA_AllLeaves_kilpis_2020.csv")
+la <- read_csv("C:/Users/poniitty/OneDrive - University of Helsinki/Kesä2020/LA_AllLeaves_kilpis_2020.csv")
 
 uus <- la %>% filter(dir == "LA-UUSIX")
 la <- la %>% filter(dir != "LA-UUSIX")
@@ -83,14 +82,14 @@ laa <- la %>%
             date = min(date))
 
 # Other traits
-d1 <- read_csv2("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2020/traits2020.csv") %>% 
+d1 <- read_csv2("C:/Users/poniitty/OneDrive - University of Helsinki/Kesä2020/traits2020.csv") %>% 
   mutate(species = ifelse(species == "cricry","crycri",species)) %>% 
   mutate(species = ifelse(species == "viobof","viobif",species)) %>% 
   mutate(species = ifelse(species == "empher","empnig", species)) %>% 
   filter(species != "empnig2") %>% 
   mutate(species = gsub("[[:digit:]]","",species)) %>% 
   select(-"...7",-"...8",-seed_mass,-seed_n)
-d2 <- read_csv2("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2020/julialta.csv") %>% 
+d2 <- read_csv2("C:/Users/poniitty/OneDrive - University of Helsinki/Kesä2020/julialta.csv") %>% 
   mutate(species = paste(genus, species, sep = " ")) %>% select(-genus,-memo,-date) %>% 
   mutate(species = ifelse(species == "Solidago viraugea","Solidago virgaurea",species)) %>% 
   mutate(species = ifelse(species == "Deschampsia flexuosa","Avenella flexuosa",species)) %>% 
@@ -113,7 +112,7 @@ d2 <- read_csv2("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2020/j
          n_leaf = leaves_nr_abs,
          w_weight = wet_mass_g,
          d_weight = dry_mass_g)
-nam <- read_csv2("C:/Science/Summer2020/all_species_abbr_edited_2.csv")
+nam <- read_csv2("env_data/all_species_abbr_edited_2.csv")
 
 unique(d2$species)[!unique(d2$species) %in% nam$name]
 unique(d1$species)[!unique(d1$species) %in% nam$abbr]
@@ -186,6 +185,8 @@ d4 <- d4 %>%
   mutate(species = ifelse(species == "Carex vaginata" & site == "MI685", "Carex bigelowii", species)) %>% 
   mutate(species = ifelse(species == "Carex vaginata" & site == "MI697", "Carex bigelowii", species)) %>% 
   mutate(species = ifelse(species == "Hieracium alpinum" & site == "MI259", "Saussurea alpina", species)) %>% 
+  mutate(species = ifelse(grepl("Calamagrostis", species) & site == "MAL089", "Calamagrostis phragmitoides", species)) %>% 
+  mutate(species = ifelse(grepl("Calamagrostis", species) & site == "MAL050", "Calamagrostis phragmitoides", species)) %>% 
   mutate(site = ifelse(site == "MAL092", "MAL052",site)) %>% 
   mutate(site = ifelse(site == "RA018", "RA019",site))
 
@@ -194,7 +195,7 @@ summary(d4)
 ############################################################################
 # Height data
 
-d <- readxl::read_xlsx("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2020/vegetation2020.xlsx", col_names = F) %>% 
+d <- readxl::read_xlsx("C:/Users/poniitty/OneDrive - University of Helsinki/Kesä2020/vegetation2020.xlsx", col_names = F) %>% 
   slice(c(1:3, 12:1000))
 
 d %>% mutate(...1 = gsub(" ","_",...1)) -> d
@@ -309,7 +310,7 @@ all <- full_join(cvr %>% select(plot:Viscaria_alpina) %>%
 ####################################################################
 # PREPROCESS JULIAS DATA
 
-d <- read_csv2("C:/Users/OMISTAJA/OneDrive - University of Helsinki/Kesä2020/Kemppinen_vegetation_2020.csv", col_names = F)
+d <- read_csv2("C:/Users/poniitty/OneDrive - University of Helsinki/Kesä2020/Kemppinen_vegetation_2020.csv", col_names = F)
 
 d %>% mutate(X1 = gsub(" ","_",X1)) -> d
 
@@ -321,7 +322,7 @@ d %>% filter(site != "site") %>%
 d %>% filter(observation == "coverage") %>% 
   select(-date,-observation) %>% 
   mutate(setting = "mikkuna",
-         plot_type = "b") %>% 
+         plot_type = "a") %>% 
   rename(plot = site) %>% 
   relocate(plot, setting, plot_type) -> cvr
 
@@ -331,7 +332,7 @@ cvr %>% replace(., is.na(.), "0") %>%
 d %>% filter(observation == "med_height") %>% 
   select(-date,-observation) %>% 
   mutate(setting = "mikkuna",
-         plot_type = "b") %>% 
+         plot_type = "a") %>% 
   rename(plot = site) %>% 
   relocate(plot, setting, plot_type) %>% 
   pivot_longer(cols = Andromeda_polifolia:ncol(.), names_to = "species", values_to = "median_height") %>% 
@@ -340,7 +341,7 @@ d %>% filter(observation == "med_height") %>%
 d %>% filter(observation == "max_height") %>% 
   select(-date,-observation) %>% 
   mutate(setting = "mikkuna",
-         plot_type = "b") %>% 
+         plot_type = "a") %>% 
   rename(plot = site) %>% 
   relocate(plot, setting, plot_type) %>% 
   pivot_longer(cols = Andromeda_polifolia:ncol(.), names_to = "species", values_to = "max_height") %>% 
@@ -396,6 +397,7 @@ all <- all %>%
   mutate(species = ifelse(species == "Minuartia biflora", "Cherleria biflora", species)) %>% 
   mutate(species = ifelse(species == "Saxifraga nivalis", "Micranthes nivalis", species)) %>% 
   mutate(species = ifelse(species == "Hierochloe hirta", "Anthoxanthum nitens", species))
+
 right_join(all %>% rename(site = plot),
            d4) %>% 
   filter(is.na(cvr)) %>% as.data.frame()
@@ -418,4 +420,5 @@ allall <- full_join(full_join(all %>% rename(site = plot),
   filter(!is.na(species))
 
 write_csv(allall, "trait_data/kilpis_vascular_all_2020.csv")
+allall %>% filter(setting == "mikkuna", species == "Vaccinium uliginosum") %>% print(n = 28)
 
