@@ -1,5 +1,4 @@
 library(tidyverse)
-library(lubridate)
 library(sf)
 
 add_zeros <- function(x, area){
@@ -46,7 +45,8 @@ p <- st_read("env_data/GIS/site_coordinates.gpkg") %>%
   select(site, Lon, Lat) %>% 
   filter(startsWith(site, "OUL")) %>% 
   st_drop_geometry()
-d <- read_csv("trait_data/oulanka_vascular_all_2023.csv")
+d <- bind_rows(read_csv("trait_data/oulanka_vascular_all_2023.csv"),
+               read_csv("trait_data/oulanka_vascular_all_2024.csv"))
 
 d %>% filter(!site %in% p$site)
 
@@ -57,7 +57,7 @@ d2 <- left_join(d, p) %>%
 d2 %>% filter(reproduction == 0)
 
 ############################################
-# OULANKA
+# RASTIGAISA
 
 p <- st_read("env_data/GIS/site_coordinates.gpkg") %>% 
   select(site, Lon, Lat) %>% 
@@ -73,6 +73,23 @@ d3 <- left_join(d, p) %>%
   relocate(Lat, Lon, .after = species) %>% 
   mutate(site = ifelse(site == "NONE", "EXT", site),
          setting = "RAS")
+
+############################################
+# PALLAS
+
+p <- st_read("env_data/GIS/site_coordinates.gpkg") %>% 
+  select(site, Lon, Lat) %>% 
+  filter(startsWith(site, "PAL")) %>% 
+  st_drop_geometry()
+
+d <- read_csv("trait_data/pallas_vascular_all_2024.csv")
+
+d %>% filter(!site %in% p$site)
+
+d8 <- left_join(d, p) %>% 
+  relocate(Lat, Lon, .after = species) %>% 
+  mutate(site = ifelse(site == "NONE", "EXT", site),
+         setting = "PAL")
 
 ############################################
 # Mattavarri
@@ -147,7 +164,15 @@ p <- bind_rows(p,
                  st_as_sf(coords = c("X","Y"), crs = 32634) %>% 
                  st_transform(4326) %>% 
                  rename(geom = geometry) %>% 
-                 select(site)) %>% 
+                 select(site),
+               read_csv("C:/Users/poniitty/OneDrive - University of Helsinki/Kesä2024/All_trait_points_2024.csv") %>% 
+                 filter(startsWith(site, "RA3") | startsWith(site, "EXT17")) %>% 
+                 st_as_sf(coords = c("X","Y"), crs = 32634) %>% 
+                 st_transform(4326) %>% 
+                 rename(geom = geometry) %>% 
+                 select(site) %>% 
+                 mutate(site = gsub("-","_",site)) %>% 
+                 mutate(site = ifelse(site == "EXT1707_3","EXT170724_3",site))) %>% 
   mutate(site = toupper(site))
 
 p <- bind_rows(p,
@@ -224,7 +249,8 @@ d <- bind_rows(read_csv("trait_data/kilpis_vascular_all_2016-2019.csv") %>%
                read_csv("trait_data/kilpis_vascular_all_2021.csv") %>% 
                  mutate(date = as_date(ifelse(is.na(date),as_date("2021-07-22"),date))),
                read_csv("trait_data/kilpis_vascular_all_2022.csv"),
-               read_csv("trait_data/kilpis_vascular_all_2023.csv")) %>% 
+               read_csv("trait_data/kilpis_vascular_all_2023.csv"),
+               read_csv("trait_data/kilpis_vascular_all_2024.csv")) %>% 
   mutate(site = toupper(site)) %>% 
   mutate(site = unlist(lapply(site, function(x) str_split(x,"-")[[1]][1]))) %>% 
   mutate(site = ifelse(site == "NONE","EXT",site)) %>% 
@@ -236,7 +262,8 @@ unique(d$site[which(!d$site %in% p$site)])
 
 # Combine non-EXT traits
 
-d6 <- d %>% filter(!startsWith(site, "EXT"))
+d6 <- d %>% 
+  filter((!startsWith(site, "EXT")) | startsWith(site, "EXT17"))
 unique(d6$site[which(!d6$site %in% p$site)])
 
 d6 <- left_join(d6,
@@ -246,7 +273,12 @@ d6 <- left_join(d6,
   relocate(Lat, Lon, .after = species)
 
 # Combine EXT traits
-d7 <- d %>% filter(startsWith(site, "EXT"))
+d7 <- d %>% filter(startsWith(site, "EXT")) %>% 
+  filter(!startsWith(site, "EXT17")) %>% 
+  mutate(site = ifelse(date == "2024-07-23" & species == "Eriophorum scheuchzeri" & w_weight < 0.16, "EXT2", site)) %>% 
+  mutate(site = ifelse(date == "2024-07-23" & species == "Saxifraga cernua" & w_weight < 0.1, "EXT2", site)) %>% 
+  mutate(site = ifelse(date == "2024-07-21" & species == "Silene dioica" & w_weight < 0.7, "EXT2", site)) %>% 
+  mutate(site = ifelse(date == "2024-07-31" & species == "Petasites frigidus" & w_weight < 9, "EXT2", site))
 
 pp1 <- bind_rows(read_csv("C:/Users/poniitty/OneDrive - Jyväskylän yliopisto/Kesä2023/earlier_data/species_points/species_points_2020_only.csv") %>% 
                   filter(endsWith(Comment, " N") | grepl(" NAYTE ", Comment)) %>% 
@@ -265,7 +297,7 @@ pp1 <- bind_rows(read_csv("C:/Users/poniitty/OneDrive - Jyväskylän yliopisto/K
 
 pp2 <- read_csv("C:/Users/poniitty/OneDrive - University of Helsinki/Kesa2023/All_species_points_2023.csv") %>% 
   filter(endsWith(Comment, " N") | grepl(" NAYTE ", Comment) | grepl("trait", Comment) | grepl("EXT", Comment) | grepl("TRAIT", Comment)) %>% 
-  st_as_sf(coords = c("X","Y"), crs = 3067) %>% 
+  st_as_sf(coords = c("X","Y"), crs = 32634) %>% 
   st_transform(crs = 4326) %>% 
   rename(geom = geometry) %>% 
   filter(!species %in% c("trait","TRAIT")) %>% 
@@ -283,9 +315,45 @@ pp2 <- pp2 %>% left_join(., nam, by = c("species" = "abbr")) %>%
   select(-species) %>% rename(species = name) %>% 
   select(site, species)
 
+pp3 <- read_csv("C:/Users/poniitty/OneDrive - University of Helsinki/Kesä2024/All_trait_points_2024.csv") %>% 
+  st_as_sf(coords = c("X","Y"), crs = 32634) %>% 
+  st_transform(4326) %>% 
+  rename(geom = geometry) %>% 
+  rename(date = GPS_Date) %>% 
+  filter(!(site == "EXT-SAXCER" & Z > 693.5 & date == "2024-07-23")) %>% 
+  select(site, date, Z) %>%
+  filter(!startsWith(site, "EXT17")) %>% 
+  filter(!startsWith(site, "RA3")) %>% 
+  mutate(site = gsub("EXT-","",site)) %>% 
+  mutate(site = gsub(" TRT2","",site)) %>% 
+  mutate(site = gsub(" TRT","",site)) %>% 
+  mutate(site = tolower(gsub(" TRAIT","",site))) %>% 
+  rename(species = site) %>% 
+  mutate(site = "EXT") %>% 
+  mutate(species = ifelse(species == "akankaali", "erystr", species)) %>% 
+  mutate(species = ifelse(species == "antealp", "antalp", species)) %>% 
+  mutate(species = ifelse(species == "cetalp", "ceralp", species)) %>% 
+  mutate(species = ifelse(species == "saniainen", "dryexp", species)) %>% 
+  mutate(species = ifelse(species == "saniainen2", "dryfil", species)) %>% 
+  mutate(species = ifelse(species == "hentos", "tripal", species)) %>% 
+  mutate(species = ifelse(species == "psastr", "psestr", species)) %>% 
+  mutate(species = ifelse(species == "erivag" & date == "2024-07-23", "erisch", species)) %>% 
+  mutate(species = ifelse(species == "ranhyp" & date == "2024-07-25", "ranrep", species)) %>% 
+  mutate(species = ifelse(species == "galium" & date == "2024-07-21", "galuli", species)) %>% 
+  mutate(site = ifelse(species == "erisch" & date == "2024-07-23" & Z > 650, "EXT2", site)) %>% 
+  mutate(site = ifelse(species == "saxcer" & date == "2024-07-23" & Z > 690, "EXT2", site)) %>% 
+  mutate(site = ifelse(species == "sildio" & date == "2024-07-21" & Z < 500, "EXT2", site)) %>% 
+  mutate(site = ifelse(species == "petfri" & date == "2024-07-31" & Z < 700, "EXT2", site))
+
+unique(pp3$species)[!unique(pp3$species) %in% nam$abbr]
+
+pp3 <- pp3 %>% left_join(., nam, by = c("species" = "abbr")) %>% 
+  select(-species) %>% rename(species = name) %>% 
+  select(site, date, species)
+
 pp <- read.table("C:/Users/poniitty/OneDrive - Jyväskylän yliopisto/Kesä2023/earlier_data/species_points/species_points_2022.csv", sep = ";", dec = ".", header = T) %>% 
   filter(grepl("trait", Comment) | grepl("EXT", Comment) | grepl("TRAIT", Comment)) %>% 
-  st_as_sf(coords = c("X","Y"), crs = 3067) %>% 
+  st_as_sf(coords = c("X","Y"), crs = 32634) %>% 
   st_transform(crs = 4326) %>% 
   rename(geom = geometry) %>% 
   mutate(site = "EXT") %>% 
@@ -322,6 +390,10 @@ d7 <- left_join(d7 %>% filter(year(date) < 2023),
             left_join(d7 %>% filter(year(date) == 2023),
                       bind_cols(pp2 %>% st_drop_geometry(),
                                 pp2 %>% st_coordinates() %>% as.data.frame()))) %>% 
+  bind_rows(., 
+            left_join(d7 %>% filter(year(date) == 2024),
+                      bind_cols(pp3 %>% st_drop_geometry(),
+                                pp3 %>% st_coordinates() %>% as.data.frame()))) %>% 
   rename(Lat = Y, Lon = X) %>% 
   relocate(Lat, Lon, .after = species) %>% 
   mutate(setting = "EXT")
@@ -331,7 +403,7 @@ d7 %>% filter(is.na(Lon)) %>% as.data.frame()
 #############################################################
 # Combine all
 
-d <- bind_rows(d1, d2, d3, d4, d5, d6, d7) %>% 
+d <- bind_rows(d1, d2, d3, d4, d5, d6, d7, d8) %>% 
   mutate(setting = ifelse(startsWith(site, "EXT"), "EXT", setting))
 
 d %>% filter(is.na(Lat))
@@ -343,14 +415,19 @@ d <- d %>%
          setting = ifelse(setting == "itvgrids", "KIL_ITV", setting),
          setting = ifelse(setting == "mikkuna", "KIL_MI", setting),
          setting = ifelse(setting == "rarearctic", "KIL_RA", setting),
+         setting = ifelse(setting == "RAREARCTIC", "KIL_RA", setting),
          setting = ifelse(setting == "roslin", "KIL_ROS", setting),
          setting = ifelse(setting == "traitexp", "KIL_EXP", setting),
+         setting = ifelse(startsWith(site, "EXT"), "EXT", setting),
          setting = ifelse(startsWith(site, "MAL"), "KIL_MAL", setting),
          setting = ifelse(startsWith(site, "AIL"), "KIL_AIL", setting),
+         setting = ifelse(startsWith(site, "SE"), "KIL_EXP", setting),
+         setting = ifelse(startsWith(site, "AE"), "KIL_EXP", setting),
          setting = ifelse(startsWith(site, "RA0"), "KIL_RA", setting),
          setting = ifelse(startsWith(site, "RA1"), "KIL_RA", setting),
          setting = ifelse(startsWith(site, "RA2"), "KIL_RA", setting),
          setting = ifelse(startsWith(site, "RA3"), "KIL_RA", setting),
+         setting = ifelse(startsWith(site, "SAL"), "KIL_RA", setting),
          setting = ifelse(startsWith(site, "MI"), "KIL_MI", setting),
          setting = ifelse(startsWith(site, "L"), "KIL_L", setting),
          setting = ifelse(startsWith(site, "BA"), "KIL_BUG", setting),
@@ -373,7 +450,9 @@ d <- d %>%
          plot_type = ifelse(grepl("^D[[:digit:]]", site), "b", plot_type),
          plot_type = ifelse(grepl("^E[[:digit:]]", site), "b", plot_type),
          plot_type = ifelse(grepl("^F[[:digit:]]", site), "b", plot_type),
-         plot_type = ifelse(startsWith(site, "MI") & year(date) %in% 2021:2022, "b", plot_type))
+         plot_type = ifelse(startsWith(site, "MI") & year(date) %in% c(2021:2022,2024), "b", plot_type))
+
+d <- d %>% filter(!(site == "B2" & year(date) == 2022))
 
 table(d$setting)
 d %>% 
@@ -411,10 +490,28 @@ d <- d %>%
   select(-n_leaf_image, -area_sum, -area_sd)
 
 # Write out semi-wide format data
-write_csv(d, "trait_data/All_vascular_2016-2023_wide.csv")
+write_csv(d, "trait_data/All_vascular_2016-2024_wide.csv")
 
+# create site x date table
+
+d <- read_csv("trait_data/All_vascular_2016-2024_wide.csv") %>% 
+  filter(year(date) >= 2020) %>% 
+  filter(!startsWith(site, "EXT"),
+         !startsWith(site, "KUA")) %>% 
+  filter(!setting %in% c("KIL_BUG","KIL_ITV"))
+
+d <- d %>% 
+  select(site, setting, date) %>% 
+  unique() %>% 
+  mutate(site2 = site) %>% 
+  mutate(site2 = ifelse(setting == "KIL_EXP", substr(site2, 1, 4), site2)) %>% 
+  relocate(site, site2)
+
+write_csv(d, "output/sitedates.csv")
 #######################################################
 # Data to long format
+
+d <- read_csv("trait_data/All_vascular_2016-2024_wide.csv")
 
 heights <- d %>% 
   select(site:max_height) %>% 
@@ -468,3 +565,4 @@ dl %>% group_by(trait) %>% count
 dl %>% group_by(setting) %>% count
 dl %>% mutate(setting = ifelse(startsWith(setting, "KIL"), "KIL", setting)) %>% group_by(setting) %>% count
 d %>% filter(!is.na(LDMC)) %>% filter(is.na(d_weight)) %>% pull(site) %>% unique
+
